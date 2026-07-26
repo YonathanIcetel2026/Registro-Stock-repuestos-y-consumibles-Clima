@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Inventario Clima - DCSM</title>
-    <!-- Tailwind CSS para diseño rápido y moderno -->
+    <title>Inventario Clima - DCSM</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js para el Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Cliente de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-100 font-sans leading-normal tracking-normal">
@@ -21,12 +18,13 @@
     </nav>
 
     <div class="container mx-auto mt-6 flex flex-wrap">
-        <!-- Panel Lateral (Menú) -->
+        <!-- Panel Lateral -->
         <div class="w-full md:w-1/4 p-4">
             <div class="bg-white rounded-lg shadow p-4 mb-6">
                 <h2 class="font-bold text-lg mb-4 text-gray-800 border-b pb-2">Navegación</h2>
                 <ul class="flex flex-col space-y-2">
-                    <li><button onclick="showTab('dashboard')" class="text-left w-full font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 p-2 rounded transition">📊 Dashboard Visual</button></li>
+                    <li><button onclick="showTab('dashboard')" class="text-left w-full font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 p-2 rounded transition">📊 Dashboard</button></li>
+                    <li><button onclick="showTab('stock')" class="text-left w-full font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 p-2 rounded transition">📦 Stock Detallado</button></li>
                     <li><button onclick="showTab('movimientos')" class="text-left w-full font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 p-2 rounded transition">🔄 Registrar IN / OUT</button></li>
                     <li><button onclick="showTab('catalogo')" class="text-left w-full font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 p-2 rounded transition">➕ Añadir al Catálogo</button></li>
                 </ul>
@@ -38,106 +36,112 @@
             
             <!-- Pestaña 1: Dashboard -->
             <div id="tab-dashboard" class="tab-section">
-                <h2 class="text-2xl font-bold mb-4 text-gray-800">Resumen de Inventario Crítico</h2>
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Métricas Globales</h2>
                 
-                <!-- Tarjetas de KPIs -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div class="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
-                        <h3 class="text-gray-500 text-sm font-bold uppercase tracking-wider">Gases Refrigerantes</h3>
-                        <p class="text-3xl font-black text-slate-800 mt-2" id="kpi-refrigerante">-- <span class="text-sm font-normal text-gray-500">Kg</span></p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- Gráfico: Stock Actual -->
+                    <div class="bg-white p-4 rounded-lg shadow border-t-4 border-blue-500">
+                        <h3 class="font-bold text-gray-700 mb-2">Stock Actual (Top 10 Consumibles)</h3>
+                        <canvas id="chartStock" height="200"></canvas>
                     </div>
-                    <div class="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
-                        <h3 class="text-gray-500 text-sm font-bold uppercase tracking-wider">Motores Ventiladores</h3>
-                        <p class="text-3xl font-black text-slate-800 mt-2" id="kpi-motores">-- <span class="text-sm font-normal text-gray-500">Unidades</span></p>
+                    
+                    <!-- Gráfico: Uso por Año -->
+                    <div class="bg-white p-4 rounded-lg shadow border-t-4 border-red-500">
+                        <h3 class="font-bold text-gray-700 mb-2">Consumo por Año (Egresos)</h3>
+                        <select id="filtroAno" class="mb-2 p-1 border rounded text-sm" onchange="renderCharts()">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                        <canvas id="chartUso" height="200"></canvas>
                     </div>
-                    <div class="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
-                        <h3 class="text-gray-500 text-sm font-bold uppercase tracking-wider">Correas</h3>
-                        <p class="text-3xl font-black text-slate-800 mt-2" id="kpi-correas">-- <span class="text-sm font-normal text-gray-500">Unidades</span></p>
-                    </div>
-                </div>
-
-                <!-- Gráfico Chart.js -->
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="font-bold text-gray-700 mb-4">Niveles de Stock por Ítem (Top 5)</h3>
-                    <canvas id="stockChart" width="400" height="150"></canvas>
                 </div>
             </div>
 
-            <!-- Pestaña 2: Registro de Movimientos -->
+            <!-- Pestaña 2: Tabla de Stock -->
+            <div id="tab-stock" class="tab-section hidden">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">Inventario Base + Registros Nuevos</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border">
+                            <thead class="bg-slate-800 text-white">
+                                <tr>
+                                    <th class="py-2 px-4 border">Categoría</th>
+                                    <th class="py-2 px-4 border">Descripción</th>
+                                    <th class="py-2 px-4 border">Stock Actual</th>
+                                    <th class="py-2 px-4 border">Uso Acumulado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-stock-body" class="text-center text-gray-700">
+                                <!-- Llenado por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pestaña 3: Registro de Movimientos -->
             <div id="tab-movimientos" class="tab-section hidden">
                 <div class="bg-white p-6 rounded-lg shadow border-t-4 border-slate-900">
                     <h2 class="text-2xl font-bold mb-6 text-gray-800">Registrar Consumo o Ingreso</h2>
                     <form id="form-movimiento" class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
-                                <label class="block text-sm font-bold text-gray-700">Tipo de Movimiento</label>
-                                <select id="mov-tipo" class="mt-1 p-2 w-full border border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="IN">IN (Ingreso a Bodega)</option>
+                                <label class="block text-sm font-bold text-gray-700">Movimiento</label>
+                                <select id="mov-tipo" class="mt-1 p-2 w-full border rounded shadow-sm">
                                     <option value="OUT">OUT (Consumo en Terreno)</option>
+                                    <option value="IN">IN (Ingreso a Bodega)</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-gray-700">Consumible</label>
-                                <select id="mov-item" class="mt-1 p-2 w-full border border-gray-300 rounded shadow-sm">
-                                    <!-- Las opciones se cargan desde Supabase -->
-                                    <option value="1">Cargando catálogo...</option>
-                                </select>
+                                <label class="block text-sm font-bold text-gray-700">Ítem</label>
+                                <select id="mov-item" class="mt-1 p-2 w-full border rounded shadow-sm"></select>
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-gray-700">Cantidad (Unidades o Kg)</label>
-                                <input type="number" step="0.1" id="mov-cantidad" class="mt-1 p-2 w-full border border-gray-300 rounded shadow-sm" required>
+                                <label class="block text-sm font-bold text-gray-700">Cantidad (Unidades / Kg)</label>
+                                <input type="number" step="0.1" id="mov-cantidad" class="mt-1 p-2 w-full border rounded shadow-sm" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700">Fecha</label>
-                                <input type="date" id="mov-fecha" class="mt-1 p-2 w-full border border-gray-300 rounded shadow-sm" required>
+                                <input type="date" id="mov-fecha" class="mt-1 p-2 w-full border rounded shadow-sm" required>
                             </div>
                             <div class="col-span-1 md:col-span-2 border-t pt-4 mt-2">
-                                <h4 class="text-sm font-bold text-slate-500 uppercase mb-3">Detalles Técnicos (Requerido para OUT)</h4>
+                                <h4 class="text-sm font-bold text-slate-500 uppercase mb-3">Detalles Técnicos</h4>
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700">TAG Equipo</label>
-                                <input type="text" id="mov-tag" class="mt-1 p-2 w-full border border-gray-300 rounded shadow-sm" placeholder="Ej: ACU-221, Chiller 1">
+                                <input type="text" id="mov-tag" class="mt-1 p-2 w-full border rounded shadow-sm">
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700">SALA / Ubicación</label>
-                                <input type="text" id="mov-sala" class="mt-1 p-2 w-full border border-gray-300 rounded shadow-sm" placeholder="Ej: Sala de Datos, Energía -1">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700">Circuito (Cto)</label>
-                                <input type="text" id="mov-cto" class="mt-1 p-2 w-full border border-gray-300 rounded shadow-sm" placeholder="Ej: Cto 1 o 2">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700">Actividad / Observación</label>
-                                <input type="text" id="mov-obs" class="mt-1 p-2 w-full border border-gray-300 rounded shadow-sm" placeholder="Ej: Recarga por fuga, Preventivo">
+                                <input type="text" id="mov-sala" class="mt-1 p-2 w-full border rounded shadow-sm">
                             </div>
                         </div>
                         <div class="mt-6">
-                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded shadow hover:bg-blue-700 transition">Guardar Movimiento</button>
+                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded shadow hover:bg-blue-700">Guardar Movimiento en Supabase</button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- Pestaña 3: Nuevo Catálogo -->
+            <!-- Pestaña 4: Nuevo Catálogo -->
             <div id="tab-catalogo" class="tab-section hidden">
                 <div class="bg-white p-6 rounded-lg shadow border-t-4 border-green-600">
-                    <h2 class="text-2xl font-bold mb-4 text-gray-800">Dar de Alta Nuevo Repuesto</h2>
-                    <p class="text-sm text-gray-500 mb-6">Utiliza este formulario para ingresar una nueva medida de correa, un nuevo tipo de gas o modelo de ventilador que no exista en el sistema.</p>
-                    
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">Agregar Ítem al Catálogo</h2>
                     <form id="form-catalogo" class="space-y-4 max-w-lg">
                         <div>
-                            <label class="block text-sm font-bold text-gray-700">Categoría Principal</label>
-                            <select id="cat-categoria" class="mt-1 p-2 w-full border rounded shadow-sm">
+                            <label class="block text-sm font-bold">Categoría Principal</label>
+                            <select id="cat-categoria" class="mt-1 p-2 w-full border rounded">
                                 <option value="Refrigerante">Gas Refrigerante</option>
                                 <option value="Motores">Motores Ventiladores</option>
                                 <option value="Correas">Correas</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700">Descripción Técnica (Marca/Modelo)</label>
-                            <input type="text" id="cat-desc" class="mt-1 p-2 w-full border rounded shadow-sm" placeholder="Ej: R410a, 220V/500mm, AP36..." required>
+                            <label class="block text-sm font-bold">Descripción Técnica</label>
+                            <input type="text" id="cat-desc" class="mt-1 p-2 w-full border rounded" required>
                         </div>
-                        <button type="submit" class="bg-green-600 text-white font-bold py-2 px-6 rounded shadow hover:bg-green-700 transition">Registrar en Catálogo</button>
+                        <button type="submit" class="bg-green-600 text-white font-bold py-2 px-6 rounded hover:bg-green-700">Crear Ítem</button>
                     </form>
                 </div>
             </div>
@@ -146,129 +150,214 @@
     </div>
 
     <script>
-        // --- 1. CONFIGURACIÓN SUPABASE ---
-        // INSERTA TUS CREDENCIALES AQUÍ
-        const SUPABASE_URL = 'https://qedseclajeysglueveia.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_kk_uPwH9L6Xl0227Fxu8KA_Kg-jiF0v';
-        
-        // Inicialización condicionada para evitar errores en vista previa sin credenciales
+        // --- 1. BASE DE DATOS INICIAL (Extraída de tu Excel) ---
+        // Estos datos actúan como el cimiento. Todo lo que cargues en Supabase se sumará o restará a estos números.
+        const baseExcel = [
+            // REFRIGERANTES
+            { id_virtual: 'ref_r410a', cat: 'Refrigerante', desc: 'R410a', stock_inicial: 70.8, uso_2024: 286.4 },
+            { id_virtual: 'ref_r407c', cat: 'Refrigerante', desc: 'R407c', stock_inicial: 79.1, uso_2024: 444.3 },
+            { id_virtual: 'ref_r438a', cat: 'Refrigerante', desc: 'R438A', stock_inicial: 46.2, uso_2024: 90.8 },
+            { id_virtual: 'ref_r22', cat: 'Refrigerante', desc: 'R22', stock_inicial: 52.2, uso_2024: 33.2 },
+            { id_virtual: 'ref_r245fa', cat: 'Refrigerante', desc: 'R245Fa', stock_inicial: 31.2, uso_2024: 38.6 },
+            { id_virtual: 'ref_r32', cat: 'Refrigerante', desc: 'R32', stock_inicial: 3.0, uso_2024: 0 },
+            
+            // MOTORES (Calculados: IN - OUT del Excel)
+            { id_virtual: 'mot_350', cat: 'Motores', desc: '220v/350mm', stock_inicial: 5, uso_2024: 2 },
+            { id_virtual: 'mot_450', cat: 'Motores', desc: '220v/450mm', stock_inicial: 0, uso_2024: 2 },
+            { id_virtual: 'mot_500', cat: 'Motores', desc: '220V/500mm', stock_inicial: 1, uso_2024: 5 },
+            { id_virtual: 'mot_630_220', cat: 'Motores', desc: '220V/630mm', stock_inicial: 17, uso_2024: 32 },
+            { id_virtual: 'mot_630_380', cat: 'Motores', desc: '380v/630mm', stock_inicial: 0, uso_2024: 6 },
+            { id_virtual: 'mot_600', cat: 'Motores', desc: '220v/600mm', stock_inicial: 2, uso_2024: 10 },
+            { id_virtual: 'mot_500_380', cat: 'Motores', desc: '380v/500mm', stock_inicial: 1, uso_2024: 0 },
+
+            // CORREAS (Calculadas: IN - OUT)
+            { id_virtual: 'cor_a46', cat: 'Correas', desc: 'A46', stock_inicial: 4, uso_2024: 0 },
+            { id_virtual: 'cor_a47', cat: 'Correas', desc: 'A47', stock_inicial: 4, uso_2024: 26 },
+            { id_virtual: 'cor_ap36', cat: 'Correas', desc: 'AP36', stock_inicial: 4, uso_2024: 2 },
+            { id_virtual: 'cor_b138', cat: 'Correas', desc: 'B138', stock_inicial: 3, uso_2024: 3 },
+            { id_virtual: 'cor_b38', cat: 'Correas', desc: 'B38', stock_inicial: 6, uso_2024: 18 },
+            { id_virtual: 'cor_b39', cat: 'Correas', desc: 'B39', stock_inicial: 4, uso_2024: 6 },
+            { id_virtual: 'cor_b40', cat: 'Correas', desc: 'B40', stock_inicial: 4, uso_2024: 14 },
+            { id_virtual: 'cor_b47', cat: 'Correas', desc: 'B47', stock_inicial: 4, uso_2024: 0 },
+            { id_virtual: 'cor_b48', cat: 'Correas', desc: 'B48', stock_inicial: 5, uso_2024: 9 }
+        ];
+
+        let inventarioFinal = [];
         let supabaseClient = null;
+
+        // --- 2. CREDENCIALES DE SUPABASE ---
+        const SUPABASE_URL = 'https://qedseclajeysglueveia.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_kk_uPwH9L6Xl0227Fxu8KA_Kg-jiF0v';
+
         if(SUPABASE_URL !== 'TU_SUPABASE_URL') {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
 
-        // --- 2. CONTROL DE PESTAÑAS ---
+        // --- 3. FUNCIONES DE INTERFAZ ---
         function showTab(tabName) {
-            document.querySelectorAll('.tab-section').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.tab-section').forEach(t => t.classList.add('hidden'));
             document.getElementById('tab-' + tabName).classList.remove('hidden');
-            if(tabName === 'dashboard') loadDashboard();
         }
 
-        // --- 3. LÓGICA DE CARGA DE ITEMS ---
-        async function loadItems() {
-            const select = document.getElementById('mov-item');
+        // --- 4. MOTOR PRINCIPAL: Unir Excel + Supabase ---
+        async function procesarDatos() {
+            inventarioFinal = JSON.parse(JSON.stringify(baseExcel)); // Copia fresca
             
+            // Si hay conexión a Supabase, buscar datos nuevos
             if (supabaseClient) {
-                const { data, error } = await supabaseClient.from('inventario_items').select('*');
-                if (!error && data) {
-                    select.innerHTML = data.map(item => `<option value="${item.id}">${item.categoria} - ${item.descripcion}</option>`).join('');
+                // 1. Traer ítems nuevos creados desde la web
+                const { data: dbItems } = await supabaseClient.from('inventario_items').select('*');
+                if (dbItems) {
+                    dbItems.forEach(dbItem => {
+                        inventarioFinal.push({
+                            id_virtual: 'supa_' + dbItem.id,
+                            id_real: dbItem.id, // ID numérico para llaves foráneas
+                            cat: dbItem.categoria,
+                            desc: dbItem.descripcion,
+                            stock_inicial: 0,
+                            uso_2024: 0,
+                            uso_2025: 0, uso_2026: 0
+                        });
+                    });
                 }
-            } else {
-                // Datos provisionales para visualizar la plantilla
-                select.innerHTML = `
-                    <option value="1">Refrigerante - R410a</option>
-                    <option value="2">Motores - 220V/500mm</option>
-                    <option value="3">Correas - A46</option>
-                `;
+
+                // 2. Traer movimientos e impactar el inventario
+                const { data: dbMovs } = await supabaseClient.from('inventario_movimientos').select('*');
+                if (dbMovs) {
+                    dbMovs.forEach(mov => {
+                        // Encontrar el ítem afectado (ya sea de la base Excel o nuevo)
+                        let itemIndex = inventarioFinal.findIndex(i => i.id_virtual === mov.item_id || i.id_real === mov.item_id);
+                        if(itemIndex > -1) {
+                            let cantidad = parseFloat(mov.cantidad);
+                            let anoMov = new Date(mov.fecha).getFullYear();
+                            
+                            if (mov.tipo === 'IN') {
+                                inventarioFinal[itemIndex].stock_inicial += cantidad;
+                            } else if (mov.tipo === 'OUT') {
+                                inventarioFinal[itemIndex].stock_inicial -= cantidad;
+                                // Registrar uso por año
+                                if(!inventarioFinal[itemIndex][`uso_${anoMov}`]) inventarioFinal[itemIndex][`uso_${anoMov}`] = 0;
+                                inventarioFinal[itemIndex][`uso_${anoMov}`] += cantidad;
+                            }
+                        }
+                    });
+                }
             }
-            
-            // Setear la fecha de hoy por defecto en el formulario
+
+            renderSelects();
+            renderTable();
+            renderCharts();
+        }
+
+        function renderSelects() {
+            const select = document.getElementById('mov-item');
+            select.innerHTML = inventarioFinal.map(i => `<option value="${i.id_real || i.id_virtual}">${i.cat} - ${i.desc}</option>`).join('');
             document.getElementById('mov-fecha').valueAsDate = new Date();
         }
 
-        // --- 4. RENDERIZAR DASHBOARD Y KPIs ---
-        let stockChartInst = null;
-        async function loadDashboard() {
-            // Lógica para el gráfico
-            const ctx = document.getElementById('stockChart').getContext('2d');
-            if(stockChartInst) stockChartInst.destroy();
-            
-            // Cuando conectes Supabase, aquí deberás sumar los IN y restar los OUT agrupando por item_id.
-            // Para visualización inicial, se precargan ejemplos de tu Excel:
-            stockChartInst = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['R410a (Kg)', 'R407c (Kg)', 'Motores 500mm', 'Correas A47', 'Correas B38'],
-                    datasets: [{
-                        label: 'Stock Actual (Unidades / Kg)',
-                        data: [70.8, 79.1, 7, 26, 18], 
-                        backgroundColor: ['#3b82f6', '#3b82f6', '#22c55e', '#f97316', '#f97316'],
-                        borderRadius: 4
-                    }]
-                },
-                options: { 
-                    responsive: true,
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
-            
-            // KPIs Simulados iniciales
-            document.getElementById('kpi-refrigerante').innerText = '149.9';
-            document.getElementById('kpi-motores').innerText = '9';
-            document.getElementById('kpi-correas').innerText = '44';
+        function renderTable() {
+            const tbody = document.getElementById('tabla-stock-body');
+            tbody.innerHTML = inventarioFinal.map(i => {
+                let totalUso = (i.uso_2024 || 0) + (i.uso_2025 || 0) + (i.uso_2026 || 0);
+                let colorClass = i.stock_inicial <= 3 ? 'text-red-600 font-bold' : '';
+                return `
+                <tr class="border-b">
+                    <td class="py-2 px-4">${i.cat}</td>
+                    <td class="py-2 px-4 font-semibold">${i.desc}</td>
+                    <td class="py-2 px-4 ${colorClass}">${i.stock_inicial.toFixed(1)}</td>
+                    <td class="py-2 px-4">${totalUso.toFixed(1)}</td>
+                </tr>`;
+            }).join('');
         }
 
-        // --- 5. INICIALIZACIÓN ---
-        document.addEventListener('DOMContentLoaded', () => {
-            loadItems();
-            loadDashboard();
-        });
+        let chartStockInst, chartUsoInst;
+        function renderCharts() {
+            const ctxStock = document.getElementById('chartStock').getContext('2d');
+            const ctxUso = document.getElementById('chartUso').getContext('2d');
+            const anoFiltro = document.getElementById('filtroAno').value;
 
-        // --- 6. ENVÍO DE FORMULARIOS A SUPABASE ---
+            // Ordenar por mayor stock para el gráfico 1
+            let topStock = [...inventarioFinal].sort((a,b) => b.stock_inicial - a.stock_inicial).slice(0, 10);
+            
+            if(chartStockInst) chartStockInst.destroy();
+            chartStockInst = new Chart(ctxStock, {
+                type: 'bar',
+                data: {
+                    labels: topStock.map(i => i.desc),
+                    datasets: [{
+                        label: 'Stock Actual',
+                        data: topStock.map(i => i.stock_inicial),
+                        backgroundColor: '#3b82f6'
+                    }]
+                }
+            });
+
+            // Ordenar por mayor uso en el año seleccionado
+            let topUso = [...inventarioFinal]
+                .filter(i => i[`uso_${anoFiltro}`] > 0)
+                .sort((a,b) => b[`uso_${anoFiltro}`] - a[`uso_${anoFiltro}`]);
+
+            if(chartUsoInst) chartUsoInst.destroy();
+            chartUsoInst = new Chart(ctxUso, {
+                type: 'doughnut',
+                data: {
+                    labels: topUso.map(i => i.desc),
+                    datasets: [{
+                        label: `Consumo ${anoFiltro}`,
+                        data: topUso.map(i => i[`uso_${anoFiltro}`]),
+                        backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899']
+                    }]
+                }
+            });
+        }
+
+        // --- 5. EVENTOS DE FORMULARIOS ---
         document.getElementById('form-movimiento').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if(!supabaseClient) return alert('Por favor configura las credenciales de Supabase en el código.');
+            if(!supabaseClient) return alert('Configura las credenciales de Supabase.');
             
-            const movimiento = {
+            const mov = {
                 item_id: document.getElementById('mov-item').value,
                 tipo: document.getElementById('mov-tipo').value,
                 cantidad: parseFloat(document.getElementById('mov-cantidad').value),
                 fecha: document.getElementById('mov-fecha').value,
                 tag: document.getElementById('mov-tag').value,
-                sala: document.getElementById('mov-sala').value,
-                cto: document.getElementById('mov-cto').value,
-                observaciones: document.getElementById('mov-obs').value
+                sala: document.getElementById('mov-sala').value
             };
 
-            const { error } = await supabaseClient.from('inventario_movimientos').insert([movimiento]);
-            if(error) {
-                alert('Error al registrar: ' + error.message);
-            } else {
-                alert('Movimiento registrado con éxito en la base de datos.');
+            // Notar que el item_id guardado será el id_virtual (ej: 'ref_r410a') o el ID real de supabase.
+            // Para eso, tu tabla inventario_movimientos en supabase DEBE permitir texto en item_id. 
+            // IMPORTANTE: Asegúrate de que la columna item_id en tu base de datos sea tipo TEXT.
+            
+            const { error } = await supabaseClient.from('inventario_movimientos').insert([mov]);
+            if(error) alert('Error: ' + error.message);
+            else {
+                alert('Guardado con éxito.');
                 document.getElementById('form-movimiento').reset();
-                document.getElementById('mov-fecha').valueAsDate = new Date();
+                procesarDatos(); // Recargar todo
             }
         });
 
         document.getElementById('form-catalogo').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if(!supabaseClient) return alert('Por favor configura las credenciales de Supabase en el código.');
+            if(!supabaseClient) return alert('Configura las credenciales de Supabase.');
 
             const nuevoItem = {
                 categoria: document.getElementById('cat-categoria').value,
-                descripcion: document.getElementById('cat-desc').value,
-                stock_actual: 0
+                descripcion: document.getElementById('cat-desc').value
             };
 
             const { error } = await supabaseClient.from('inventario_items').insert([nuevoItem]);
-            if(error) {
-                alert('Error al guardar: ' + error.message);
-            } else {
-                alert('Nuevo ítem agregado al catálogo.');
+            if(error) alert('Error: ' + error.message);
+            else {
+                alert('Ítem creado.');
                 document.getElementById('form-catalogo').reset();
-                loadItems(); // Recargar el dropdown de movimientos
+                procesarDatos();
             }
         });
+
+        // Iniciar
+        document.addEventListener('DOMContentLoaded', procesarDatos);
     </script>
 </body>
 </html>
