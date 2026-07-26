@@ -36,47 +36,46 @@
             
             <!-- Pestaña 1: Dashboard -->
             <div id="tab-dashboard" class="tab-section">
-                <h2 class="text-2xl font-bold mb-4 text-gray-800">Métricas Globales</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Métricas por Categoría</h2>
+                    <div>
+                        <label class="font-bold text-sm text-gray-600 mr-2">Visualizar:</label>
+                        <select id="filtroCatDashboard" class="p-2 border rounded shadow-sm bg-white font-semibold text-blue-700" onchange="renderCharts()">
+                            <option value="Refrigerante">Gases Refrigerantes (Kg)</option>
+                            <option value="Motores">Motores Ventiladores (Und)</option>
+                            <option value="Correas">Correas (Und)</option>
+                        </select>
+                    </div>
+                </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <!-- Gráfico: Stock Actual -->
                     <div class="bg-white p-4 rounded-lg shadow border-t-4 border-blue-500">
-                        <h3 class="font-bold text-gray-700 mb-2">Stock Actual (Top 10 Consumibles)</h3>
+                        <h3 class="font-bold text-gray-700 mb-2">Stock Actual</h3>
                         <canvas id="chartStock" height="200"></canvas>
                     </div>
                     
                     <!-- Gráfico: Uso por Año -->
                     <div class="bg-white p-4 rounded-lg shadow border-t-4 border-red-500">
-                        <h3 class="font-bold text-gray-700 mb-2">Consumo por Año (Egresos)</h3>
-                        <select id="filtroAno" class="mb-2 p-1 border rounded text-sm" onchange="renderCharts()">
-                            <option value="2024">2024</option>
-                            <option value="2025">2025</option>
-                            <option value="2026">2026</option>
-                        </select>
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-gray-700">Consumo Total</h3>
+                            <select id="filtroAno" class="p-1 border rounded text-sm bg-gray-50" onchange="renderCharts()">
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                        </div>
                         <canvas id="chartUso" height="200"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Pestaña 2: Tabla de Stock -->
+            <!-- Pestaña 2: Tabla de Stock (SEPARADA) -->
             <div id="tab-stock" class="tab-section hidden">
                 <div class="bg-white p-6 rounded-lg shadow">
-                    <h2 class="text-2xl font-bold mb-4 text-gray-800">Inventario Base + Registros Nuevos</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white border">
-                            <thead class="bg-slate-800 text-white">
-                                <tr>
-                                    <th class="py-2 px-4 border">Categoría</th>
-                                    <th class="py-2 px-4 border">Descripción</th>
-                                    <th class="py-2 px-4 border">Stock Actual</th>
-                                    <th class="py-2 px-4 border">Uso Acumulado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-stock-body" class="text-center text-gray-700">
-                                <!-- Llenado por JS -->
-                            </tbody>
-                        </table>
-                    </div>
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Inventario Separado por Categorías</h2>
+                    <!-- Aquí se inyectarán las tablas dinámicamente -->
+                    <div id="contenedor-tablas-stock"></div>
                 </div>
             </div>
 
@@ -118,7 +117,7 @@
                             </div>
                         </div>
                         <div class="mt-6">
-                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded shadow hover:bg-blue-700">Guardar Movimiento en Supabase</button>
+                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded shadow hover:bg-blue-700">Guardar Movimiento</button>
                         </div>
                     </form>
                 </div>
@@ -150,8 +149,7 @@
     </div>
 
     <script>
-        // --- 1. BASE DE DATOS INICIAL (Extraída de tu Excel) ---
-        // Estos datos actúan como el cimiento. Todo lo que cargues en Supabase se sumará o restará a estos números.
+        // --- 1. BASE DE DATOS INICIAL ---
         const baseExcel = [
             // REFRIGERANTES
             { id_virtual: 'ref_r410a', cat: 'Refrigerante', desc: 'R410a', stock_inicial: 70.8, uso_2024: 286.4 },
@@ -161,7 +159,7 @@
             { id_virtual: 'ref_r245fa', cat: 'Refrigerante', desc: 'R245Fa', stock_inicial: 31.2, uso_2024: 38.6 },
             { id_virtual: 'ref_r32', cat: 'Refrigerante', desc: 'R32', stock_inicial: 3.0, uso_2024: 0 },
             
-            // MOTORES (Calculados: IN - OUT del Excel)
+            // MOTORES 
             { id_virtual: 'mot_350', cat: 'Motores', desc: '220v/350mm', stock_inicial: 5, uso_2024: 2 },
             { id_virtual: 'mot_450', cat: 'Motores', desc: '220v/450mm', stock_inicial: 0, uso_2024: 2 },
             { id_virtual: 'mot_500', cat: 'Motores', desc: '220V/500mm', stock_inicial: 1, uso_2024: 5 },
@@ -170,7 +168,7 @@
             { id_virtual: 'mot_600', cat: 'Motores', desc: '220v/600mm', stock_inicial: 2, uso_2024: 10 },
             { id_virtual: 'mot_500_380', cat: 'Motores', desc: '380v/500mm', stock_inicial: 1, uso_2024: 0 },
 
-            // CORREAS (Calculadas: IN - OUT)
+            // CORREAS
             { id_virtual: 'cor_a46', cat: 'Correas', desc: 'A46', stock_inicial: 4, uso_2024: 0 },
             { id_virtual: 'cor_a47', cat: 'Correas', desc: 'A47', stock_inicial: 4, uso_2024: 26 },
             { id_virtual: 'cor_ap36', cat: 'Correas', desc: 'AP36', stock_inicial: 4, uso_2024: 2 },
@@ -185,13 +183,10 @@
         let inventarioFinal = [];
         let supabaseClient = null;
 
-        // --- 2. CREDENCIALES DE SUPABASE ---
-        const SUPABASE_URL = 'https://qedseclajeysglueveia.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_kk_uPwH9L6Xl0227Fxu8KA_Kg-jiF0v';
-
-        if(SUPABASE_URL !== 'TU_SUPABASE_URL') {
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        }
+        // --- 2. CREDENCIALES SUPABASE ---
+        const SUPABASE_URL = 'https://qedseclajeysglueveia.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_kk_uPwH9L6Xl0227Fxu8KA_Kg-jiF0v';
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // --- 3. FUNCIONES DE INTERFAZ ---
         function showTab(tabName) {
@@ -199,34 +194,29 @@
             document.getElementById('tab-' + tabName).classList.remove('hidden');
         }
 
-        // --- 4. MOTOR PRINCIPAL: Unir Excel + Supabase ---
+        // --- 4. MOTOR PRINCIPAL ---
         async function procesarDatos() {
-            inventarioFinal = JSON.parse(JSON.stringify(baseExcel)); // Copia fresca
+            inventarioFinal = JSON.parse(JSON.stringify(baseExcel)); 
             
-            // Si hay conexión a Supabase, buscar datos nuevos
             if (supabaseClient) {
-                // 1. Traer ítems nuevos creados desde la web
                 const { data: dbItems } = await supabaseClient.from('inventario_items').select('*');
                 if (dbItems) {
                     dbItems.forEach(dbItem => {
                         inventarioFinal.push({
                             id_virtual: 'supa_' + dbItem.id,
-                            id_real: dbItem.id, // ID numérico para llaves foráneas
+                            id_real: dbItem.id, 
                             cat: dbItem.categoria,
                             desc: dbItem.descripcion,
                             stock_inicial: 0,
-                            uso_2024: 0,
-                            uso_2025: 0, uso_2026: 0
+                            uso_2024: 0, uso_2025: 0, uso_2026: 0
                         });
                     });
                 }
 
-                // 2. Traer movimientos e impactar el inventario
                 const { data: dbMovs } = await supabaseClient.from('inventario_movimientos').select('*');
                 if (dbMovs) {
                     dbMovs.forEach(mov => {
-                        // Encontrar el ítem afectado (ya sea de la base Excel o nuevo)
-                        let itemIndex = inventarioFinal.findIndex(i => i.id_virtual === mov.item_id || i.id_real === mov.item_id);
+                        let itemIndex = inventarioFinal.findIndex(i => i.id_virtual === mov.item_id || String(i.id_real) === String(mov.item_id));
                         if(itemIndex > -1) {
                             let cantidad = parseFloat(mov.cantidad);
                             let anoMov = new Date(mov.fecha).getFullYear();
@@ -235,7 +225,6 @@
                                 inventarioFinal[itemIndex].stock_inicial += cantidad;
                             } else if (mov.tipo === 'OUT') {
                                 inventarioFinal[itemIndex].stock_inicial -= cantidad;
-                                // Registrar uso por año
                                 if(!inventarioFinal[itemIndex][`uso_${anoMov}`]) inventarioFinal[itemIndex][`uso_${anoMov}`] = 0;
                                 inventarioFinal[itemIndex][`uso_${anoMov}`] += cantidad;
                             }
@@ -244,40 +233,112 @@
                 }
             }
 
+            // Llenar selector de nuevo catálogo si hay categorías nuevas
+            actualizarFiltrosCategoria();
+
             renderSelects();
-            renderTable();
+            renderTableSeparada();
             renderCharts();
+        }
+
+        function actualizarFiltrosCategoria() {
+            const categoriasUnicas = [...new Set(inventarioFinal.map(item => item.cat))];
+            const selectFiltro = document.getElementById('filtroCatDashboard');
+            
+            // Guardamos el valor seleccionado actual para no perderlo al actualizar
+            const valorActual = selectFiltro.value;
+            
+            selectFiltro.innerHTML = categoriasUnicas.map(c => `<option value="${c}">${c}</option>`).join('');
+            
+            // Restaurar valor si aún existe
+            if(categoriasUnicas.includes(valorActual)) {
+                selectFiltro.value = valorActual;
+            }
         }
 
         function renderSelects() {
             const select = document.getElementById('mov-item');
-            select.innerHTML = inventarioFinal.map(i => `<option value="${i.id_real || i.id_virtual}">${i.cat} - ${i.desc}</option>`).join('');
+            // Agrupar visualmente en el selector
+            let opcionesHTML = '';
+            const categorias = [...new Set(inventarioFinal.map(i => i.cat))];
+            categorias.forEach(cat => {
+                opcionesHTML += `<optgroup label="${cat}">`;
+                let itemsCat = inventarioFinal.filter(i => i.cat === cat);
+                itemsCat.forEach(i => {
+                    opcionesHTML += `<option value="${i.id_virtual || i.id_real}">${i.desc}</option>`;
+                });
+                opcionesHTML += `</optgroup>`;
+            });
+            select.innerHTML = opcionesHTML;
             document.getElementById('mov-fecha').valueAsDate = new Date();
         }
 
-        function renderTable() {
-            const tbody = document.getElementById('tabla-stock-body');
-            tbody.innerHTML = inventarioFinal.map(i => {
-                let totalUso = (i.uso_2024 || 0) + (i.uso_2025 || 0) + (i.uso_2026 || 0);
-                let colorClass = i.stock_inicial <= 3 ? 'text-red-600 font-bold' : '';
-                return `
-                <tr class="border-b">
-                    <td class="py-2 px-4">${i.cat}</td>
-                    <td class="py-2 px-4 font-semibold">${i.desc}</td>
-                    <td class="py-2 px-4 ${colorClass}">${i.stock_inicial.toFixed(1)}</td>
-                    <td class="py-2 px-4">${totalUso.toFixed(1)}</td>
-                </tr>`;
-            }).join('');
+        // NUEVA FUNCIÓN: Tabla separada por categorías
+        function renderTableSeparada() {
+            const contenedor = document.getElementById('contenedor-tablas-stock');
+            const categorias = [...new Set(inventarioFinal.map(i => i.cat))];
+            let htmlFinal = '';
+
+            categorias.forEach(cat => {
+                let itemsCat = inventarioFinal.filter(i => i.cat === cat);
+                
+                // Color de encabezado por categoría para distinguirlas
+                let bgHeader = 'bg-slate-800';
+                if(cat === 'Refrigerante') bgHeader = 'bg-blue-800';
+                if(cat === 'Motores') bgHeader = 'bg-orange-700';
+                if(cat === 'Correas') bgHeader = 'bg-green-800';
+
+                htmlFinal += `
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold mb-3 text-gray-800 border-l-4 border-slate-500 pl-3">${cat}</h3>
+                    <div class="overflow-x-auto rounded shadow">
+                        <table class="min-w-full bg-white border">
+                            <thead class="${bgHeader} text-white">
+                                <tr>
+                                    <th class="py-2 px-4 border text-left w-1/2">Descripción / Modelo</th>
+                                    <th class="py-2 px-4 border text-center">Stock Actual</th>
+                                    <th class="py-2 px-4 border text-center">Uso Total Acumulado</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-gray-700">`;
+
+                itemsCat.forEach(i => {
+                    let totalUso = (i.uso_2024 || 0) + (i.uso_2025 || 0) + (i.uso_2026 || 0);
+                    // Marcar en rojo si el stock es muy bajo (ajustable)
+                    let limiteBajo = cat === 'Refrigerante' ? 10 : 2; 
+                    let colorClass = i.stock_inicial <= limiteBajo ? 'text-red-600 font-bold bg-red-50' : 'text-center';
+                    
+                    htmlFinal += `
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="py-2 px-4 font-semibold text-left">${i.desc}</td>
+                                    <td class="py-2 px-4 ${colorClass}">${i.stock_inicial.toFixed(1)}</td>
+                                    <td class="py-2 px-4 text-center">${totalUso.toFixed(1)}</td>
+                                </tr>`;
+                });
+
+                htmlFinal += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            });
+
+            contenedor.innerHTML = htmlFinal;
         }
 
         let chartStockInst, chartUsoInst;
         function renderCharts() {
             const ctxStock = document.getElementById('chartStock').getContext('2d');
             const ctxUso = document.getElementById('chartUso').getContext('2d');
+            
             const anoFiltro = document.getElementById('filtroAno').value;
+            const catFiltro = document.getElementById('filtroCatDashboard').value;
 
-            // Ordenar por mayor stock para el gráfico 1
-            let topStock = [...inventarioFinal].sort((a,b) => b.stock_inicial - a.stock_inicial).slice(0, 10);
+            // Filtrar inventario solo por la categoría seleccionada
+            let inventarioFiltrado = inventarioFinal.filter(i => i.cat === catFiltro);
+
+            // Gráfico de Stock
+            let topStock = [...inventarioFiltrado].sort((a,b) => b.stock_inicial - a.stock_inicial);
             
             if(chartStockInst) chartStockInst.destroy();
             chartStockInst = new Chart(ctxStock, {
@@ -285,16 +346,16 @@
                 data: {
                     labels: topStock.map(i => i.desc),
                     datasets: [{
-                        label: 'Stock Actual',
+                        label: `Stock Actual (${catFiltro})`,
                         data: topStock.map(i => i.stock_inicial),
-                        backgroundColor: '#3b82f6'
+                        backgroundColor: catFiltro === 'Refrigerante' ? '#3b82f6' : (catFiltro === 'Motores' ? '#ea580c' : '#16a34a')
                     }]
                 }
             });
 
-            // Ordenar por mayor uso en el año seleccionado
-            let topUso = [...inventarioFinal]
-                .filter(i => i[`uso_${anoFiltro}`] > 0)
+            // Gráfico de Uso
+            let topUso = [...inventarioFiltrado]
+                .filter(i => (i[`uso_${anoFiltro}`] || 0) > 0)
                 .sort((a,b) => b[`uso_${anoFiltro}`] - a[`uso_${anoFiltro}`]);
 
             if(chartUsoInst) chartUsoInst.destroy();
@@ -305,16 +366,15 @@
                     datasets: [{
                         label: `Consumo ${anoFiltro}`,
                         data: topUso.map(i => i[`uso_${anoFiltro}`]),
-                        backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899']
+                        backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b']
                     }]
                 }
             });
         }
 
-        // --- 5. EVENTOS DE FORMULARIOS ---
+        // --- 5. EVENTOS ---
         document.getElementById('form-movimiento').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if(!supabaseClient) return alert('Configura las credenciales de Supabase.');
             
             const mov = {
                 item_id: document.getElementById('mov-item').value,
@@ -324,23 +384,18 @@
                 tag: document.getElementById('mov-tag').value,
                 sala: document.getElementById('mov-sala').value
             };
-
-            // Notar que el item_id guardado será el id_virtual (ej: 'ref_r410a') o el ID real de supabase.
-            // Para eso, tu tabla inventario_movimientos en supabase DEBE permitir texto en item_id. 
-            // IMPORTANTE: Asegúrate de que la columna item_id en tu base de datos sea tipo TEXT.
             
             const { error } = await supabaseClient.from('inventario_movimientos').insert([mov]);
             if(error) alert('Error: ' + error.message);
             else {
                 alert('Guardado con éxito.');
                 document.getElementById('form-movimiento').reset();
-                procesarDatos(); // Recargar todo
+                procesarDatos(); 
             }
         });
 
         document.getElementById('form-catalogo').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if(!supabaseClient) return alert('Configura las credenciales de Supabase.');
 
             const nuevoItem = {
                 categoria: document.getElementById('cat-categoria').value,
@@ -356,7 +411,6 @@
             }
         });
 
-        // Iniciar
         document.addEventListener('DOMContentLoaded', procesarDatos);
     </script>
 </body>
